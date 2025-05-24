@@ -5,7 +5,7 @@ module.exports = {
     env_production: {
        NODE_ENV: "production",
        PORT: 3000, // Port yang akan digunakan aplikasi Anda
-       SESSION_SECRET: "e9d1eedec7fff5464f92d10c87bbf58f875cd5dee47f9340143c9e0e103a931c",
+       SESSION_SECRET: "MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB",
        FFMPEG_PATH: "/usr/bin/ffmpeg" // Sesuaikan dengan path FFmpeg di VPS Anda
     },
     // Tambahkan env_development jika Anda juga ingin menjalankannya dalam mode dev di VPS
