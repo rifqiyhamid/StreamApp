@@ -21,11 +21,23 @@ const db = new sqlite3.Database(dbPath, (err) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-    secret: 'MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB', // GANTI DENGAN KUNCI RAHASIA KUAT ANDA
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'lax' }
+    store: new SQLiteStore({
+        db: 'streaming_app.db', // Nama file database Anda
+        dir: path.resolve(__dirname),      // Direktori tempat file .db Anda berada
+        table: 'sessions',          // Nama tabel untuk sesi (akan dibuat otomatis)
+        concurrentDB: true          // Tambahkan ini jika ada potensi akses DB bersamaan
+    }),
+    secret: 'MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB', // GANTI DENGAN KUNCI RAHASIA KUAT ANDA SENDIRI
+    resave: false, // jangan simpan kembali sesi jika tidak ada perubahan
+    saveUninitialized: false, // jangan buat sesi sampai ada sesuatu yang disimpan
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production', // true jika HTTPS
+        httpOnly: true, // Untuk keamanan, cegah akses cookie via JavaScript sisi klien
+        sameSite: 'lax', // Perlindungan CSRF dasar
+        maxAge: 24 * 60 * 60 * 1000 // Durasi cookie sesi (misalnya 1 hari)
+    }
 }));
+
 
 function isAuthenticated(req, res, next) {
     if (req.session && req.session.userId) return next();
