@@ -28,7 +28,7 @@ app.use(session({
         table: 'sessions',          // Nama tabel untuk sesi (akan dibuat otomatis)
         concurrentDB: true          // Tambahkan ini jika ada potensi akses DB bersamaan
     }),
-    secret: 'MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB', // GANTI DENGAN KUNCI RAHASIA KUAT ANDA SENDIRI
+    secret: 'e9d1eedec7fff5464f92d10c87bbf58f875cd5dee47f9340143c9e0e103a931c', // GANTI DENGAN KUNCI RAHASIA KUAT ANDA SENDIRI
     resave: false, // jangan simpan kembali sesi jika tidak ada perubahan
     saveUninitialized: false, // jangan buat sesi sampai ada sesuatu yang disimpan
     cookie: { 
