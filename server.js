@@ -4,6 +4,7 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
+const SQLiteStore = require('connect-sqlite3')(session); 
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
@@ -21,10 +22,21 @@ const db = new sqlite3.Database(dbPath, (err) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-    secret: 'MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB', // GANTI DENGAN KUNCI RAHASIA KUAT ANDA
+    store: new SQLiteStore({ // Pastikan ini digunakan
+        db: 'streaming_app.db',     // Nama file database Anda
+        dir: path.resolve(__dirname), // Direktori tempat file .db Anda berada
+        table: 'sessions',      // Nama tabel untuk sesi (akan dibuat otomatis)
+        concurrentDB: true      // Baik untuk SQLite
+    }),
+    secret: process.env.SESSION_SECRET || 'MZx7q9J2sP5DkF8RcH1eVbN0yL4gA6hWnGtZu3XfCjIoEoSvYpUaK8wT7mKlD3rB', // Ambil dari ENV
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, sameSite: 'lax' }
+    cookie: { 
+        secure: process.env.NODE_ENV === 'production', 
+        httpOnly: true, 
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000 
+    }
 }));
 
 function isAuthenticated(req, res, next) {
