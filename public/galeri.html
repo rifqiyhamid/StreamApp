@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeri Video - StreamApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .profile-menu { display: none; position: absolute; right: 0; top: 100%; z-index: 50; }
+        
+        .video-thumbnail-container {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 aspect ratio */
+            background-color: #1f2937; /* Latar belakang gelap jika poster/video lambat dimuat */
+            border-radius: 0.25rem; /* md */
+        }
+        .video-thumbnail-container video { /* Video element akan memiliki controls sendiri */
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* Agar kontrol video tidak terpotong jika video tidak 16:9 */
+            border-radius: 0.25rem; 
+        }
+        /* Styling untuk link navbar aktif */
+        .nav-link.active { background-color: #eef2ff; /* indigo-100 */ color: #4338ca; /* indigo-700 */ font-weight: 600; }
+        .spinner { border: 4px solid rgba(0, 0, 0, .1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #4f46e5; animation: spin 1s ease infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <a href="/" class="flex items-center">
+                        <svg class="h-8 w-auto text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M6.578 17.999A6.503 6.503 0 0012 20.5c2.021 0 3.84-.936 5.039-2.412A7.963 7.963 0 0012 16c-2.355 0-4.464.997-6.002 2.686L6.578 18zM12 4a4 4 0 100 8 4 4 0 000-8zm0-2C6.477 2 2 6.477 2 12s4.477 10 10 10c.039 0 .078 0 .117-.002A9.954 9.954 0 0022 12c0-5.523-4.477-10-10-10z" /></svg>
+                        <span class="ml-2 text-xl font-semibold text-gray-700">StreamApp</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="addVideoButtonNavbar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        Tambah Stream
+                    </button>
+                    <div class="relative profile-container">
+                        <button id="profileButton" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" aria-expanded="false" aria-haspopup="true">
+                            <span class="sr-only">Buka menu pengguna</span>
+                            <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
+                            <span id="navbarUsername" class="ml-2 hidden md:block text-gray-700 font-medium">Nama User</span>
+                        </button>
+                        <div id="profileMenuDropdown" class="profile-menu origin-top-right mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 focus:outline-none" role="menu" aria-orientation="vertical" aria-labelledby="profileButton" tabindex="-1">
+                            <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/dashboard">Dashboard</a>
+                            <a href="/galeri" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/galeri">Galeri</a>
+                            <a href="/pengaturan" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/pengaturan">Pengaturan</a>
+                            <a href="/history" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/history">History</a>
+                            <a href="/logout" id="logoutButton" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Keluar</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <h1 class="text-3xl font-semibold text-gray-800 mb-8">Galeri Video Saya</h1>
+
+        <section id="uploadSection" class="mb-10 p-6 bg-white rounded-lg shadow-md">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Unggah Video Baru</h2>
+            <form id="uploadVideoForm" enctype="multipart/form-data">
+                <div class="mb-4">
+                    <label for="videoName" class="block text-sm font-medium text-gray-600 mb-1">Nama Video (Judul):</label>
+                    <input type="text" id="videoName" name="videoName"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                           placeholder="Misal: Tutorial Streaming Keren">
+                </div>
+                <div class="mb-4">
+                    <label for="videoFile" class="block text-sm font-medium text-gray-600 mb-1">Pilih File Video (Max: 500MB):</label>
+                    <input type="file" id="videoFile" name="videoFile" accept="video/*" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-indigo-50 file:text-indigo-700
+                                  hover:file:bg-indigo-100 cursor-pointer">
+                </div>
+                <button type="submit" id="uploadButton"
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline flex items-center disabled:opacity-50">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    Unggah Video
+                </button>
+            </form>
+            <div id="uploadStatus" class="mt-4 text-sm"></div>
+            <div id="uploadProgressBarContainer" class="w-full bg-gray-200 rounded-full h-2.5 mt-2 hidden">
+                <div id="uploadProgressBar" class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300 ease-out" style="width: 0%"></div>
+            </div>
+        </section>
+
+        <section id="videoGallerySection">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Video Saya</h2>
+            <div id="videoGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <p id="galleryLoadingMessage" class="text-gray-500 col-span-full">Memuat video...</p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        async function fetchAndDisplayUsername() {
+            try {
+                const response = await fetch('/api/user/profile');
+                if (response.ok) { const userData = await response.json(); const el = document.getElementById('navbarUsername'); if (el && userData.username) el.textContent = userData.username; }
+                else if (response.status === 401) { console.warn('Pengguna tidak terautentikasi.'); }
+                else { console.error('Gagal ambil profil navbar:', response.statusText); }
+            } catch (error) { console.error('Error fetch profil navbar:', error); }
+        }
+
+        function initializeNavbarInteractions() {
+            fetchAndDisplayUsername();
+            const profileButton = document.getElementById('profileButton');
+            const profileMenuDropdown = document.getElementById('profileMenuDropdown');
+            if (profileButton && profileMenuDropdown) {
+                profileButton.addEventListener('click', (event) => { event.stopPropagation(); const exp = profileButton.getAttribute('aria-expanded') === 'true'; profileButton.setAttribute('aria-expanded', !exp); profileMenuDropdown.style.display = exp ? 'none' : 'block'; });
+                document.addEventListener('click', (event) => { if (profileMenuDropdown.style.display === 'block' && !profileButton.contains(event.target) && !profileMenuDropdown.contains(event.target)) { profileMenuDropdown.style.display = 'none'; profileButton.setAttribute('aria-expanded', 'false'); } });
+            }
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) { logoutButton.addEventListener('click', (e) => { e.preventDefault(); fetch('/logout', { method: 'GET' }).then(res => { if (res.ok || res.redirected) window.location.href = '/login'; else alert('Gagal logout.'); }).catch(err => { console.error('Error logout:', err); alert('Error logout.'); }); }); }
+            
+            const addVideoButtonNavbar = document.getElementById('addVideoButtonNavbar');
+            if(addVideoButtonNavbar) {
+                addVideoButtonNavbar.addEventListener('click', () => { window.location.href = '/dashboard'; });
+            }
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#profileMenuDropdown a.nav-link').forEach(link => {
+                if (link.dataset.navpath === currentPath) { link.classList.add('active'); } 
+                else { link.classList.remove('active'); }
+            });
+             if (currentPath === '/galeri') { // Khusus untuk menandai Galeri jika itu halaman saat ini
+                const galleryLink = document.querySelector('a[data-navpath="/galeri"]');
+                if (galleryLink) galleryLink.classList.add('active');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeNavbarInteractions();
+
+            const uploadVideoForm = document.getElementById('uploadVideoForm');
+            const videoFileInp = document.getElementById('videoFile');
+            const videoNameInp = document.getElementById('videoName');
+            const uploadButton = document.getElementById('uploadButton');
+            const uploadStatusDiv = document.getElementById('uploadStatus');
+            const progressBarContainer = document.getElementById('uploadProgressBarContainer');
+            const progressBar = document.getElementById('uploadProgressBar');
+            const videoGrid = document.getElementById('videoGrid');
+            const galleryLoadingMessage = document.getElementById('galleryLoadingMessage');
+
+            if (uploadVideoForm) {
+                uploadVideoForm.addEventListener('submit', async function(event) {
+                    event.preventDefault();
+                    const file = videoFileInp.files[0];
+                    const videoName = videoNameInp.value.trim(); 
+                    if (!file) { uploadStatusDiv.textContent = 'Silakan pilih file video.'; uploadStatusDiv.className = 'mt-4 text-sm text-red-500'; return; }
+
+                    const formData = new FormData();
+                    formData.append('videoFile', file);
+                    if (videoName) { formData.append('videoName', videoName); }
+
+                    uploadStatusDiv.textContent = 'Mengunggah video...';
+                    uploadStatusDiv.className = 'mt-4 text-sm text-blue-500';
+                    uploadButton.disabled = true;
+                    progressBarContainer.classList.remove('hidden');
+                    progressBar.style.width = '0%';
+                    let simulatedProgress = 0;
+                    const interval = setInterval(() => {
+                        simulatedProgress += 5;
+                        if (simulatedProgress <= 95) progressBar.style.width = simulatedProgress + '%';
+                        else clearInterval(interval); 
+                    }, 200);
+
+                    try {
+                        const response = await fetch('/api/videos/upload', { method: 'POST', body: formData });
+                        clearInterval(interval);
+                        const result = await response.json();
+                        if (response.ok) {
+                            uploadStatusDiv.textContent = 'Video berhasil diunggah: ' + (result.videoTitle || result.filename || file.name) ;
+                            uploadStatusDiv.className = 'mt-4 text-sm text-green-500';
+                            progressBar.style.width = '100%';
+                            uploadVideoForm.reset();
+                            fetchUserVideos(); 
+                        } else {
+                            uploadStatusDiv.textContent = 'Gagal mengunggah video: ' + (result.message || 'Error tidak diketahui.');
+                            uploadStatusDiv.className = 'mt-4 text-sm text-red-500';
+                            progressBar.style.width = '0%';
+                        }
+                    } catch (error) {
+                        clearInterval(interval);
+                        console.error('Error saat upload:', error);
+                        uploadStatusDiv.textContent = 'Terjadi kesalahan: ' + error.message;
+                        uploadStatusDiv.className = 'mt-4 text-sm text-red-500';
+                        progressBar.style.width = '0%';
+                    } finally {
+                        uploadButton.disabled = false;
+                        setTimeout(() => { progressBarContainer.classList.add('hidden'); progressBar.style.width = '0%'; }, 3000);
+                    }
+                });
+            }
+            
+            async function fetchUserVideos() {
+                if (galleryLoadingMessage) galleryLoadingMessage.textContent = 'Memuat video...';
+                videoGrid.innerHTML = ''; 
+
+                try {
+                    const response = await fetch('/api/videos');
+                    if (!response.ok) throw new Error(`Gagal memuat video: ${response.statusText}`);
+                    const videos = await response.json();
+
+                    if (galleryLoadingMessage) galleryLoadingMessage.style.display = 'none';
+
+                    if (videos.length === 0) {
+                        videoGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center">Anda belum mengunggah video apapun.</p>';
+                        return;
+                    }
+
+                    videos.forEach(video => {
+                        const videoUrl = video.url; 
+                        const displayName = video.title || video.original_filename;
+                        const posterUrl = video.poster_url || `https://via.placeholder.com/320x180.png?text=${encodeURIComponent(displayName.substring(0,20))}`; 
+
+                        const card = document.createElement('div');
+                        card.className = 'bg-white rounded-lg shadow-md overflow-hidden video-item';
+                        card.dataset.videoId = video.id;
+                        card.dataset.videoPath = videoUrl; 
+                        card.dataset.videoTitle = displayName; // Simpan judul untuk 'Pilih'
+                        card.dataset.videoPoster = posterUrl; // Simpan poster untuk 'Pilih'
+
+
+                        card.innerHTML = `
+                            <div class="video-thumbnail-container bg-black">
+                                <video src="${videoUrl}" 
+                                       poster="${posterUrl}" 
+                                       preload="metadata" 
+                                       class="gallery-video-element" 
+                                       playsinline 
+                                       controls>
+                                    Browser Anda tidak mendukung tag video.
+                                </video>
+                            </div>
+                            <div class="p-3">
+                                <h3 class="text-sm font-semibold text-gray-800 truncate video-filename" title="${displayName}">${displayName}</h3>
+                                <p class="text-xs text-gray-500 video-uploaddate">Diunggah: ${new Date(video.upload_date).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                                <div class="mt-2 flex flex-col space-y-1 sm:space-y-0 sm:flex-row sm:space-x-1">
+                                    <button class="select-for-stream-button text-xs bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded w-full">Pilih</button>
+                                    <button class="delete-video-button text-xs bg-red-500 hover:bg-red-600 text-white py-1 px-2 rounded w-full">Hapus</button>
+                                </div>
+                            </div>
+                        `;
+                        videoGrid.appendChild(card);
+                    });
+                } catch (error) {
+                    console.error('Error memuat galeri:', error);
+                    if (galleryLoadingMessage) galleryLoadingMessage.style.display = 'none';
+                    videoGrid.innerHTML = `<p class="text-red-500 col-span-full text-center">Gagal memuat video: ${error.message}</p>`;
+                }
+            }
+
+            fetchUserVideos();
+
+            videoGrid.addEventListener('click', async function(event) {
+                const videoItem = event.target.closest('.video-item');
+                if (!videoItem) return;
+
+                if (event.target.closest('video[controls]') && event.target.tagName !== 'VIDEO') {
+                     // Jika klik pada kontrol video, biarkan default action browser
+                    return; 
+                }
+                 // Jika klik pada elemen video itu sendiri (bukan kontrolnya), bisa untuk play/pause kustom jika diinginkan
+                if (event.target.classList.contains('gallery-video-element')) {
+                    const videoPlayer = event.target;
+                    if (videoPlayer.paused) {
+                        videoPlayer.play();
+                    } else {
+                        videoPlayer.pause();
+                    }
+                    return; // Hentikan propagasi lebih lanjut untuk klik pada video
+                }
+
+
+                const videoId = videoItem.dataset.videoId;
+                const videoPath = videoItem.dataset.videoPath;
+                
+                if (event.target.classList.contains('select-for-stream-button')) {
+                    // Simpan info video yang dipilih ke localStorage untuk diambil oleh dashboard.html
+                    const videoDataToPass = {
+                        id: videoId,
+                        url: videoPath,
+                        title: videoItem.dataset.videoTitle,
+                        poster: videoItem.dataset.videoPoster
+                    };
+                    localStorage.setItem('selectedVideoFromGallery', JSON.stringify(videoDataToPass));
+                    alert(`Video "${videoDataToPass.title}" dipilih. Kembali ke Dashboard untuk menggunakannya.`);
+                    window.location.href = '/dashboard'; // Arahkan ke dashboard
+                } else if (event.target.classList.contains('delete-video-button')) {
+                    if (confirm(`Anda yakin ingin menghapus video "${videoItem.querySelector('.video-filename').textContent}"?`)) {
+                        try {
+                            const response = await fetch(`/api/videos/delete/${videoId}`, { method: 'DELETE' });
+                            const result = await response.json();
+                            if (response.ok) { alert(result.message || 'Video berhasil dihapus.'); fetchUserVideos(); }
+                            else { alert('Gagal menghapus video: ' + (result.message || 'Error tidak diketahui.'));}
+                        } catch (error) { console.error('Error menghapus video:', error); alert('Terjadi kesalahan saat menghapus video.');}
+                    }
+                }
+            });
+
+        });
+    </script>
+</body>
+</html>

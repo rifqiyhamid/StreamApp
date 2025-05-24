@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - StreamApp</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .profile-menu { display: none; position: absolute; right: 0; top: 100%; z-index: 50; }
+        .aspect-w-16 { position: relative; padding-bottom: 56.25%; }
+        .aspect-h-9 {}
+        .aspect-w-16 > *, .aspect-h-9 > * { position: absolute; height: 100%; width: 100%; top: 0; right: 0; bottom: 0; left: 0; }
+        .stream-card .video-preview { width: 100%; height: 100%; object-fit: contain; background-color: #111827; }
+        .modal-gallery-item img { width: 100%; height: 8rem; object-fit: cover; background-color: #e5e7eb; }
+        .spinner { border: 4px solid rgba(0, 0, 0, .1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #4f46e5; animation: spin 1s ease infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .nav-link.active { background-color: #eef2ff; color: #4338ca; font-weight: 600; }
+        /* .live-button svg { transition: transform 0.3s ease; } /* Opsional, bisa dihapus jika tidak ada animasi rotasi */
+    </style>
+</head>
+<body class="bg-gray-100">
+
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0"><a href="/" class="flex items-center"><svg class="h-8 w-auto text-indigo-600" fill="currentColor" viewBox="0 0 24 24"><path d="M6.578 17.999A6.503 6.503 0 0012 20.5c2.021 0 3.84-.936 5.039-2.412A7.963 7.963 0 0012 16c-2.355 0-4.464.997-6.002 2.686L6.578 18zM12 4a4 4 0 100 8 4 4 0 000-8zm0-2C6.477 2 2 6.477 2 12s4.477 10 10 10c.039 0 .078 0 .117-.002A9.954 9.954 0 0022 12c0-5.523-4.477-10-10-10z" /></svg><span class="ml-2 text-xl font-semibold text-gray-700">StreamApp</span></a></div>
+                <div class="flex items-center space-x-4">
+                    <button id="addVideoButtonNavbar" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-md flex items-center"><svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>Tambah Stream</button>
+                    <div class="relative profile-container">
+                        <button id="profileButton" class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"><span class="sr-only">Buka menu</span><div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div><span id="navbarUsername" class="ml-2 hidden md:block text-gray-700 font-medium">Nama User</span></button>
+                        <div id="profileMenuDropdown" class="profile-menu origin-top-right mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5"><a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/dashboard">Dashboard</a><a href="/galeri" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/galeri">Galeri</a><a href="/pengaturan" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/pengaturan">Pengaturan</a><a href="/history" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 nav-link" data-navpath="/history">History</a><a href="/logout" id="logoutButton" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Keluar</a></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div class="flex justify-between items-center mb-6"><h1 id="dashboardTitle" class="text-2xl font-semibold text-gray-800">Dashboard</h1></div>
+        <div id="streamGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div id="addStreamCardPlaceholder" class="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center p-10 text-gray-500 hover:text-indigo-600 hover:border-indigo-600 cursor-pointer min-h-[200px] sm:min-h-[500px]"><svg class="h-12 w-12 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg><p>Tambah Stream Baru</p></div>
+        </div>
+    </main>
+
+    <div id="galleryModal" class="fixed inset-0 bg-gray-800 bg-opacity-75 overflow-y-auto h-full w-full flex items-center justify-center hidden z-50 p-4"><div class="relative bg-white w-full max-w-3xl mx-auto rounded-lg shadow-xl"><div class="flex justify-between items-center p-4 border-b"><h3 class="text-xl font-semibold text-gray-700">Pilih Video dari Galeri</h3><button id="closeGalleryModalButton" class="text-gray-500 hover:text-gray-700">×</button></div><div class="p-4 max-h-[70vh] overflow-y-auto"><div id="modalGalleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"><p id="modalGalleryLoadingMessage" class="text-gray-500 col-span-full">Memuat video...</p></div></div><div class="p-4 border-t text-right"><button id="cancelGallerySelectionButton" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Batal</button></div></div></div>
+    <div id="confirmationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center hidden z-[60] p-4"><div class="relative mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white"><h3 id="confirmationModalTitle" class="text-lg leading-6 font-medium text-gray-900 text-center">Konfirmasi</h3><p id="confirmationModalMessage" class="mt-2 text-sm text-gray-600 text-center">Apakah Anda yakin?</p><div class="items-center px-4 py-3 mt-4 text-center"><button id="modalConfirmButton" class="px-4 py-2 bg-indigo-600 text-white text-base font-medium rounded-md w-auto hover:bg-indigo-700">Ya</button><button id="modalCancelButton" class="ml-3 px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md w-auto hover:bg-gray-300">Batal</button></div></div></div>
+
+    <script>
+        async function fetchAndDisplayUsername() {
+            try {
+                const response = await fetch('/api/user/profile', { headers: { 'Accept': 'application/json' }});
+                if (response.ok) { const userData = await response.json(); const el = document.getElementById('navbarUsername'); if (el && userData.username) el.textContent = userData.username; }
+                else if (response.status === 401) { console.warn('Pengguna tidak terautentikasi.'); window.location.href = '/login'; } // Redirect jika 401
+                else { console.error('Gagal ambil profil navbar:', response.statusText); }
+            } catch (error) { console.error('Error fetch profil navbar:', error); }
+        }
+
+        function initializeNavbarInteractions() {
+            fetchAndDisplayUsername();
+            const profileButton = document.getElementById('profileButton');
+            const profileMenuDropdown = document.getElementById('profileMenuDropdown');
+            if (profileButton && profileMenuDropdown) {
+                profileButton.addEventListener('click', (event) => { event.stopPropagation(); const exp = profileButton.getAttribute('aria-expanded') === 'true'; profileButton.setAttribute('aria-expanded', !exp); profileMenuDropdown.style.display = exp ? 'none' : 'block'; });
+                document.addEventListener('click', (event) => { if (profileMenuDropdown.style.display === 'block' && !profileButton.contains(event.target) && !profileMenuDropdown.contains(event.target)) { profileMenuDropdown.style.display = 'none'; profileButton.setAttribute('aria-expanded', 'false'); } });
+            }
+            const logoutButton = document.getElementById('logoutButton');
+            if (logoutButton) { logoutButton.addEventListener('click', (e) => { e.preventDefault(); fetch('/logout', { method: 'GET' }).then(res => { if (res.ok || res.redirected) window.location.href = '/login'; else alert('Gagal logout.'); }).catch(err => { console.error('Error logout:', err); alert('Error logout.'); }); }); }
+            
+            const addVideoButtonNavbar = document.getElementById('addVideoButtonNavbar');
+            if(addVideoButtonNavbar) { addVideoButtonNavbar.addEventListener('click', handleAddNewStreamClick); }
+
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('#profileMenuDropdown a.nav-link').forEach(link => {
+                if (link.dataset.navpath === currentPath) { link.classList.add('active'); } 
+                else { link.classList.remove('active'); }
+            });
+            if (currentPath === '/dashboard') { const dashboardLink = document.querySelector('a[data-navpath="/dashboard"]'); if (dashboardLink) dashboardLink.classList.add('active'); }
+        }
+
+        function createStreamCardHTML(streamData = {}) {
+            const cardId = streamData.id; 
+            if (!cardId) { console.error("createStreamCardHTML: streamData.id tidak valid!", streamData); return null; }
+            const streamName = streamData.name || "Stream Baru";
+            const videoSrc = streamData.video_path_public || ""; 
+            const posterSrc = streamData.poster_url || (videoSrc ? "" : `https://via.placeholder.com/320x180.png?text=${encodeURIComponent(streamName.substring(0,15))}`);
+            const rtmpUrl = streamData.rtmp_url || "rtmp://a.rtmp.youtube.com/live2"; // Default RTMP
+            const streamKey = streamData.stream_key || "";
+            const resolution = streamData.resolution || "1920x1080"; 
+            const fps = streamData.fps || 30;                         
+            const videoBitrate = streamData.video_bitrate || "3000k"; 
+            const loopVideo = typeof streamData.loop_video === 'boolean' ? streamData.loop_video : (streamData.loop_video === 1 || streamData.loop_video === '1'); // Handle angka/string 1
+            
+            const statusText = streamData.status || "OFFLINE";
+            const isLive = statusText === "LIVE";
+            const statusColor = isLive ? "text-green-500 bg-green-100 animate-pulse" : (statusText === "ERROR" ? "text-yellow-600 bg-yellow-100" : "text-red-500 bg-red-100");
+            
+            const lastActive = streamData.last_active ? new Date(streamData.last_active).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : "Belum pernah";
+            const galleryVideoId = streamData.video_id || "";
+
+            const rtmpUrlId = `rtmpUrl_${cardId}`;
+            const streamKeyId = `streamKey_${cardId}`;
+            const loopVideoId = `loopVideo_${cardId}`;
+            const resolutionId = `resolution_${cardId}`;
+            const fpsId = `fps_${cardId}`;
+            const videoBitrateId = `videoBitrate_${cardId}`;
+
+            const liveButtonText = isLive ? "STOP LIVE" : "MULAI LIVE";
+            const liveButtonBaseClasses = "text-white font-medium py-2 px-4 rounded-md flex items-center text-sm";
+            const liveButtonColor = isLive ? "bg-red-500 hover:bg-red-600" : "bg-green-500 hover:bg-green-600";
+            const liveButtonIcon = isLive 
+                ? `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg>` 
+                : `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.445-11.168a1 1 0 00-1.555.832v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg>`;
+
+            const html = `
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden flex flex-col stream-card" data-stream-id="${cardId}" data-gallery-video-id="${galleryVideoId}">
+                <div class="p-4 border-b border-gray-200"><div class="flex justify-between items-center"><input type="text" value="${streamName}" placeholder="Nama Stream" class="stream-name-input text-lg font-semibold text-gray-800 border-b-2 border-transparent focus:border-indigo-500 outline-none w-full mr-2"/><div class="relative card-options-dropdown-container"><button class="text-gray-500 hover:text-gray-700 focus:outline-none card-options-button"><svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg></button><div class="card-options-menu hidden absolute right-0 mt-1 w-48 bg-white rounded-md shadow-xl z-20 py-1 text-sm"><a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 save-changes-action">Simpan Konfigurasi</a><a href="#" class="block px-4 py-2 text-red-600 hover:bg-gray-100 delete-stream-action">Hapus Stream Ini</a></div></div></div></div>
+                <div class="p-4 flex-grow">
+                    <div class="aspect-w-16 aspect-h-9 bg-black rounded-md overflow-hidden mb-2"><video class="w-full h-full video-preview" src="${videoSrc}" poster="${posterSrc}" controls playsinline ${loopVideo ? 'loop' : ''} data-current-video-path="${videoSrc}"></video></div>
+                    <button class="change-video-button w-full text-sm bg-gray-200 hover:bg-gray-300 text-gray-700 py-1.5 px-3 rounded-md mb-4">Ganti Video Sumber</button>
+                    <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm mb-3">
+                        <div><label for="${resolutionId}" class="block text-xs font-medium text-gray-600">Resolusi:</label><select id="${resolutionId}" class="resolution-select w-full mt-1 px-2 py-1.5 border border-gray-300 rounded-md text-xs"><option value="854x480" ${resolution === "854x480" ? "selected" : ""}>480p</option><option value="1280x720" ${resolution === "1280x720" ? "selected" : ""}>720p</option><option value="1920x1080" ${resolution === "1920x1080" ? "selected" : ""}>1080p</option><option value="3840x2160" ${resolution === "3840x2160" ? "selected" : ""}>4K</option></select></div>
+                        <div><label for="${fpsId}" class="block text-xs font-medium text-gray-600">FPS:</label><select id="${fpsId}" class="fps-select w-full mt-1 px-2 py-1.5 border border-gray-300 rounded-md text-xs"><option value="24" ${fps == 24 ? "selected" : ""}>24</option><option value="30" ${fps == 30 ? "selected" : ""}>30</option><option value="60" ${fps == 60 ? "selected" : ""}>60</option></select></div>
+                        <div class="col-span-2"><label for="${videoBitrateId}" class="block text-xs font-medium text-gray-600">Video Bitrate (cth: 3000k):</label><input type="text" id="${videoBitrateId}" value="${videoBitrate}" class="video-bitrate-input w-full mt-1 px-2 py-1.5 border border-gray-300 rounded-md text-xs" placeholder="cth: 3000k"></div>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div><label for="${rtmpUrlId}" class="block text-xs font-medium text-gray-600">RTMP URL Server:</label><input type="url" id="${rtmpUrlId}" value="${rtmpUrl}" class="rtmp-url-input w-full mt-1 px-2 py-1.5 border border-gray-300 rounded-md text-xs" placeholder="rtmp://a.rtmp.youtube.com/live2"></div>
+                        <div>
+                            <label for="${streamKeyId}" class="block text-xs font-medium text-gray-600">Stream Key:</label>
+                            <div class="relative mt-1">
+                                <input type="password" id="${streamKeyId}" value="${streamKey}" class="stream-key-input w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs pr-10" placeholder="xxxx-xxxx-xxxx-xxxx">
+                                <button type="button" class="toggle-stream-key-visibility absolute inset-y-0 right-0 px-3 flex items-center text-xs text-gray-500 hover:text-gray-700 focus:outline-none" aria-label="Toggle stream key visibility">
+                                    <svg class="h-4 w-4 eye-icon-open" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-.07.207-.141.414-.217.621M12 17c-4.478 0-8.268-2.943-9.542-7 .07-.207-.141.414-.217-.621"/></svg>
+                                    <svg class="h-4 w-4 eye-icon-closed hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7 .175-.482.356-.952.548-1.414M10 14l2-2m0 0l2-2m-2 2l-2 2m2-2l2 2m7.542-7A9.953 9.953 0 0012 5C7.523 5 3.732 7.943 2.458 12a10.023 10.023 0 002.036 3.875m11.576-.452A10.023 10.023 0 0112 19c-.69 0-1.363-.076-2.006-.22M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mt-3"><label for="${loopVideoId}" class="flex items-center text-xs font-medium text-gray-700 cursor-pointer select-none"><input type="checkbox" id="${loopVideoId}" class="loop-video-checkbox h-4 w-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500 mr-2" ${loopVideo ? 'checked' : ''}>Putar Video Berulang (Loop)</label></div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 bg-gray-50"><div class="flex items-center justify-between"><button class="live-button ${liveButtonColor} ${liveButtonBaseClasses}" data-status="${isLive ? 'LIVE' : 'OFFLINE'}">${liveButtonIcon}${liveButtonText}</button><span class="stream-status-badge text-xs font-medium ${statusColor} px-2 py-1 rounded-full">${statusText}</span></div><p class="text-xs text-gray-500 mt-2 last-active-text">Terakhir Aktif: ${lastActive}</p></div>
+            </div>`;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html.trim();
+            return tempDiv.firstChild; 
+        }
+
+        function renderStreamCard(streamData) {
+            const newCardElement = createStreamCardHTML(streamData);
+            if (newCardElement) {
+                const addStreamCardPlaceholder = document.getElementById('addStreamCardPlaceholder');
+                const streamGrid = document.getElementById('streamGrid'); // Pastikan streamGrid diambil di sini juga
+                if (addStreamCardPlaceholder) { streamGrid.insertBefore(newCardElement, addStreamCardPlaceholder); } 
+                else { streamGrid.appendChild(newCardElement); }
+                return newCardElement;
+            }
+            return null;
+        }
+        
+        async function handleAddNewStreamClick() {
+            const clickedButton = this && this.id ? document.getElementById(this.id) : document.getElementById('addVideoButtonNavbar');
+            const originalButtonHTML = clickedButton.innerHTML;
+            clickedButton.disabled = true; 
+            const spinnerHTML = '<div class="spinner mx-auto"></div><span class="ml-2">Membuat...</span>';
+            const navbarButtonSpinnerHTML = '<div class="spinner"></div><span class="ml-2">Membuat...</span>';
+            clickedButton.innerHTML = (clickedButton.id === 'addVideoButtonNavbar') ? navbarButtonSpinnerHTML : spinnerHTML;
+            
+            try {
+                const defaultStreamName = `Stream Baru ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`;
+                const response = await fetch('/api/stream-configs', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ name: defaultStreamName, loop_video: true, resolution: "1920x1080", fps: 30, video_bitrate: "3000k", rtmp_url: "rtmp://a.rtmp.youtube.com/live2" }) 
+                });
+                if (!response.ok) { const errData = await response.json(); throw new Error(errData.message || 'Gagal buat stream baru.'); }
+                const newStreamConfig = await response.json();
+                renderStreamCard(newStreamConfig); 
+            } catch (error) { console.error("Error buat stream baru:", error); alert("Gagal tambah stream: " + error.message);
+            } finally { clickedButton.disabled = false; clickedButton.innerHTML = originalButtonHTML; }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeNavbarInteractions(); 
+            
+            const streamGrid = document.getElementById('streamGrid');
+            const addStreamCardPlaceholder = document.getElementById('addStreamCardPlaceholder');
+            const galleryModal = document.getElementById('galleryModal');
+            const closeGalleryModalButton = document.getElementById('closeGalleryModalButton');
+            const cancelGallerySelectionButton = document.getElementById('cancelGallerySelectionButton');
+            const modalGalleryGrid = document.getElementById('modalGalleryGrid');
+            const modalGalleryLoadingMessage = document.getElementById('modalGalleryLoadingMessage');
+            let currentEditingCardContext = null;
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmationModalTitle = document.getElementById('confirmationModalTitle');
+            const confirmationModalMessage = document.getElementById('confirmationModalMessage');
+            const modalConfirmBtn = document.getElementById('modalConfirmButton');
+            const modalCancelBtn = document.getElementById('modalCancelButton');
+            let confirmActionCallback = null;
+            
+            if (addStreamCardPlaceholder) addStreamCardPlaceholder.addEventListener('click', handleAddNewStreamClick);
+            
+            function openGalleryModal(cardElementContext) { currentEditingCardContext = cardElementContext; galleryModal.classList.remove('hidden'); loadVideosIntoModalGallery(); }
+            function closeGalleryModal() { galleryModal.classList.add('hidden'); modalGalleryGrid.innerHTML = ''; }
+            if (closeGalleryModalButton) closeGalleryModalButton.addEventListener('click', closeGalleryModal);
+            if (cancelGallerySelectionButton) cancelGallerySelectionButton.addEventListener('click', closeGalleryModal);
+            
+            async function loadVideosIntoModalGallery() {
+                modalGalleryGrid.innerHTML = ''; 
+                if (modalGalleryLoadingMessage) { modalGalleryLoadingMessage.textContent = 'Memuat video...'; modalGalleryLoadingMessage.style.display = 'block'; }
+                try {
+                    const response = await fetch('/api/videos', { headers: { 'Accept': 'application/json' }}); 
+                    if (!response.ok) { const errText = await response.text(); throw new Error(`Gagal ambil video: ${response.status} ${errText}`); }
+                    const videos = await response.json();
+                    if (modalGalleryLoadingMessage) modalGalleryLoadingMessage.style.display = 'none';
+                    if (!videos || videos.length === 0) { modalGalleryGrid.innerHTML = '<p class="text-gray-500 col-span-full text-center">Tidak ada video di galeri.</p>'; return; }
+                    videos.forEach(video => {
+                        const displayName = video.title || video.original_filename || "Video Tanpa Judul";
+                        const posterUrl = video.poster_url || `https://via.placeholder.com/320x180.png?text=${encodeURIComponent(displayName.substring(0,20))}`; 
+                        const videoUrlForStream = video.url; 
+                        const videoItemHTML = `<div class="gallery-modal-item border rounded-lg overflow-hidden hover:shadow-lg transition-shadow cursor-pointer bg-white" data-video-id="${video.id}" data-video-url="${videoUrlForStream}" data-video-title="${displayName}" data-video-poster="${posterUrl}"><img src="${posterUrl}" alt="${displayName}" class="modal-gallery-thumbnail w-full h-24 object-cover bg-gray-300"><div class="p-2"><p class="text-xs font-medium text-gray-700 truncate" title="${displayName}">${displayName}</p><button class="select-video-from-modal-button mt-1 w-full text-xs bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-2 rounded">Pilih</button></div></div>`;
+                        modalGalleryGrid.insertAdjacentHTML('beforeend', videoItemHTML);
+                    });
+                } catch (error) { console.error("Error muat video ke modal:", error); if (modalGalleryLoadingMessage) modalGalleryLoadingMessage.style.display = 'none'; modalGalleryGrid.innerHTML = `<p class="text-red-500 col-span-full text-center">Gagal: ${error.message}</p>`;}
+            }
+
+            if (modalGalleryGrid) {
+                modalGalleryGrid.addEventListener('click', function(event) {
+                    const selectButton = event.target.closest('.select-video-from-modal-button');
+                    if (selectButton) {
+                        const galleryItem = selectButton.closest('.gallery-modal-item');
+                        const videoId = galleryItem.dataset.videoId;
+                        const videoUrl = galleryItem.dataset.videoUrl;
+                        const videoTitle = galleryItem.dataset.videoTitle;
+                        const videoPoster = galleryItem.dataset.videoPoster; 
+                        if (currentEditingCardContext) {
+                            const videoPreviewElement = currentEditingCardContext.querySelector('.video-preview');
+                            const streamNameInput = currentEditingCardContext.querySelector('.stream-name-input');
+                            if (videoPreviewElement) { videoPreviewElement.src = videoUrl; videoPreviewElement.poster = videoPoster; videoPreviewElement.dataset.currentVideoPath = videoUrl; }
+                            currentEditingCardContext.dataset.galleryVideoId = videoId;
+                            if (streamNameInput && (streamNameInput.value === "Stream Baru" || streamNameInput.value === "" || streamNameInput.value.startsWith("Stream Baru "))) { streamNameInput.value = videoTitle; }
+                            alert(`Video "${videoTitle}" dipilih. Klik "Simpan Konfigurasi" pada kartu stream.`);
+                        }
+                        closeGalleryModal(); 
+                    }
+                });
+            }
+            
+            function openConfirmationModal(title, message, onConfirm) { confirmationModalTitle.textContent = title; confirmationModalMessage.textContent = message; confirmationModal.classList.remove('hidden'); confirmActionCallback = onConfirm; }
+            function closeConfirmationModal() { confirmationModal.classList.add('hidden'); confirmActionCallback = null; }
+            if (modalConfirmBtn) { modalConfirmBtn.addEventListener('click', () => { if (typeof confirmActionCallback === 'function') confirmActionCallback(); closeConfirmationModal(); }); }
+            if (modalCancelBtn) modalCancelBtn.addEventListener('click', closeConfirmationModal);
+
+            if (streamGrid) {
+                streamGrid.addEventListener('change', function(event) {
+                    const card = event.target.closest('.stream-card');
+                    if (!card) return;
+                    if (event.target.classList.contains('loop-video-checkbox')) {
+                        const videoPreviewEl = card.querySelector('.video-preview');
+                        if (videoPreviewEl) { videoPreviewEl.loop = event.target.checked; }
+                    }
+                });
+
+                streamGrid.addEventListener('click', async function(event) {
+                    const card = event.target.closest('.stream-card');
+                    if (!card) return;
+                    const streamId = card.dataset.streamId;
+               
+                    if (event.target.closest('.change-video-button')) { currentEditingCardContext = card; openGalleryModal(card); } 
+                    else if (event.target.closest('.card-options-button')) { event.stopPropagation(); const menu = card.querySelector('.card-options-menu'); if (menu) menu.classList.toggle('hidden'); }
+                    else if (event.target.classList.contains('save-changes-action')) {
+                        event.preventDefault();
+                        const saveButton = event.target; const originalSaveButtonHTML = saveButton.innerHTML;
+                        saveButton.innerHTML = '<div class="spinner mx-auto"></div>'; saveButton.disabled = true;
+                        if (!streamId) { alert("Error: ID stream tidak ada."); saveButton.innerHTML = originalSaveButtonHTML; saveButton.disabled = false; return; }
+                        const streamName = card.querySelector('.stream-name-input').value;
+                        const rtmpUrl = card.querySelector('.rtmp-url-input').value;
+                        const streamKey = card.querySelector('.stream-key-input').value;
+                        const videoPreviewEl = card.querySelector('.video-preview');
+                        const currentVideoPath = videoPreviewEl ? videoPreviewEl.dataset.currentVideoPath : null;
+                        const galleryVideoId = card.dataset.galleryVideoId || null;
+                        const loopVideo = card.querySelector('.loop-video-checkbox').checked;
+                        const resolution = card.querySelector('.resolution-select').value;
+                        const fps = parseInt(card.querySelector('.fps-select').value);
+                        const videoBitrate = card.querySelector('.video-bitrate-input').value;
+                        const statusBadgeEl = card.querySelector('.stream-status-badge');
+                        const currentStatus = statusBadgeEl ? statusBadgeEl.textContent.trim() : 'OFFLINE';
+
+                        const streamConfigData = { name: streamName, rtmp_url: rtmpUrl, stream_key: streamKey, video_id: galleryVideoId ? parseInt(galleryVideoId) : null, video_path_manual: !galleryVideoId && currentVideoPath ? currentVideoPath : null, loop_video: loopVideo, resolution: resolution, fps: fps, video_bitrate: videoBitrate, platform: null, status: currentStatus };
+                        
+                        try {
+                            const response = await fetch(`/api/stream-configs/${streamId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' }, body: JSON.stringify(streamConfigData) });
+                            if (!response.ok) { const errRes = await response.json(); throw new Error(errRes.message || "Gagal simpan."); }
+                            const updatedStream = await response.json();
+                            alert(`Stream "${updatedStream.name}" diperbarui!`);
+                            card.querySelector('.stream-name-input').value = updatedStream.name;
+                            card.querySelector('.rtmp-url-input').value = updatedStream.rtmp_url || "";
+                            card.querySelector('.stream-key-input').value = updatedStream.stream_key || "";
+                            card.querySelector('.loop-video-checkbox').checked = typeof updatedStream.loop_video === 'boolean' ? updatedStream.loop_video : (updatedStream.loop_video === 1);
+                            card.querySelector('.resolution-select').value = updatedStream.resolution || "1920x1080";
+                            card.querySelector('.fps-select').value = updatedStream.fps || 30;
+                            card.querySelector('.video-bitrate-input').value = updatedStream.video_bitrate || "3000k";
+                            if (videoPreviewEl && updatedStream.video_path_public) { videoPreviewEl.src = updatedStream.video_path_public; videoPreviewEl.poster = updatedStream.poster_url || ""; videoPreviewEl.dataset.currentVideoPath = updatedStream.video_path_public; }
+                            card.dataset.galleryVideoId = updatedStream.video_id || "";
+                            if (statusBadgeEl && updatedStream.status) { 
+                                statusBadgeEl.textContent = updatedStream.status; 
+                                const isLive = updatedStream.status === "LIVE";
+                                const isError = updatedStream.status === "ERROR";
+                                statusBadgeEl.className = `stream-status-badge text-xs font-medium ${isLive ? "text-green-500 bg-green-100 animate-pulse" : (isError ? "text-yellow-600 bg-yellow-100" : "text-red-500 bg-red-100")} px-2 py-1 rounded-full`; 
+                            }
+                            card.querySelector('.last-active-text').textContent = "Terakhir Aktif: " + (updatedStream.last_active ? new Date(updatedStream.last_active).toLocaleString('id-ID', {dateStyle: 'medium', timeStyle: 'short'}) : "Belum pernah");
+                        } catch (error) { console.error("Error simpan:", error); alert("Gagal simpan: " + error.message);
+                        } finally { saveButton.innerHTML = originalSaveButtonHTML; saveButton.disabled = false; const menu = card.querySelector('.card-options-menu'); if (menu) menu.classList.add('hidden'); }
+                    } else if (event.target.classList.contains('delete-stream-action')) {
+                        event.preventDefault();
+                        openConfirmationModal('Konfirmasi Hapus Stream', `Yakin ingin menghapus stream "${card.querySelector('.stream-name-input').value}"?`, async () => {
+                            if (!streamId) { alert("Error: ID stream tidak ada."); return; }
+                            try { 
+                                const response = await fetch(`/api/stream-configs/${streamId}`, { method: 'DELETE', headers: { 'Accept': 'application/json' } });
+                                if (!response.ok) { const errRes = await response.json(); throw new Error(errRes.message || "Gagal hapus.");}
+                                const result = await response.json(); alert(result.message || 'Stream dihapus.'); card.remove();
+                            } catch (error) { console.error("Error hapus:", error); alert("Gagal hapus: " + error.message); }
+                        });
+                        const menu = card.querySelector('.card-options-menu'); if (menu) menu.classList.add('hidden');
+                    } else if (event.target.closest('.live-button')) {
+                        const liveButton = event.target.closest('.live-button');
+                        const statusBadge = card.querySelector('.stream-status-badge');
+                        const isCurrentlyLive = liveButton.dataset.status === 'LIVE';
+                        liveButton.disabled = true;
+                        const originalButtonHTML = liveButton.innerHTML;
+                        liveButton.innerHTML = '<div class="spinner mx-auto"></div><span class="ml-2">Loading...</span>';
+                        const endpoint = isCurrentlyLive ? `/api/stream-configs/${streamId}/stop` : `/api/stream-configs/${streamId}/start`;
+                        try {
+                            const response = await fetch(endpoint, { method: 'POST', headers: { 'Accept': 'application/json' } });
+                            const result = await response.json();
+                            if (response.ok) {
+                                if (result.status === "LIVE") {
+                                    liveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clip-rule="evenodd" /></svg> STOP LIVE`;
+                                    liveButton.classList.remove('bg-green-500', 'hover:bg-green-600'); liveButton.classList.add('bg-red-500', 'hover:bg-red-600');
+                                    statusBadge.textContent = 'LIVE'; statusBadge.className = 'stream-status-badge text-xs font-medium text-green-500 bg-green-100 animate-pulse px-2 py-1 rounded-full';
+                                    liveButton.dataset.status = 'LIVE';
+                                } else { // OFFLINE atau ERROR
+                                    liveButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-.445-11.168a1 1 0 00-1.555.832v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd" /></svg> MULAI LIVE`;
+                                    liveButton.classList.remove('bg-red-500', 'hover:bg-red-600'); liveButton.classList.add('bg-green-500', 'hover:bg-green-600');
+                                    statusBadge.textContent = result.status || 'OFFLINE'; 
+                                    const isError = result.status === 'ERROR';
+                                    statusBadge.className = `stream-status-badge text-xs font-medium ${isError ? 'text-yellow-600 bg-yellow-100' : 'text-red-500 bg-red-100'} px-2 py-1 rounded-full`;
+                                    liveButton.dataset.status = 'OFFLINE';
+                                }
+                                alert(result.message || "Operasi stream selesai.");
+                            } else { alert(`Gagal: ${result.message || 'Operasi gagal.'}`); liveButton.innerHTML = originalButtonHTML; }
+                        } catch (error) { console.error("Error operasi stream:", error); alert("Kesalahan: " + error.message); liveButton.innerHTML = originalButtonHTML;
+                        } finally { liveButton.disabled = false; }
+                    } else if (event.target.closest('.toggle-stream-key-visibility')) {
+                        const button = event.target.closest('.toggle-stream-key-visibility');
+                        const streamKeyInput = button.parentElement.querySelector('.stream-key-input');
+                        const eyeOpen = button.querySelector('.eye-icon-open');
+                        const eyeClosed = button.querySelector('.eye-icon-closed');
+                        if (streamKeyInput && eyeOpen && eyeClosed) {
+                            if (streamKeyInput.type === "password") { streamKeyInput.type = "text"; eyeOpen.classList.add('hidden'); eyeClosed.classList.remove('hidden'); }
+                            else { streamKeyInput.type = "password"; eyeOpen.classList.remove('hidden'); eyeClosed.classList.add('hidden'); }
+                        }
+                    }
+                });
+                document.addEventListener('click', (event) => { if (!event.target.closest('.card-options-dropdown-container')) { document.querySelectorAll('.card-options-menu').forEach(menu => menu.classList.add('hidden')); } });
+            }
+
+            async function loadInitialStreamConfigs() {
+                const streamGrid = document.getElementById('streamGrid');
+                const addStreamCardPlaceholder = document.getElementById('addStreamCardPlaceholder');
+                const loadingPara = document.createElement('p');
+                loadingPara.id = "dashboardLoadingMessage";
+                loadingPara.className = "text-gray-500 col-span-full text-center";
+                loadingPara.textContent = "Memuat stream yang sudah ada...";
+                if (addStreamCardPlaceholder) { streamGrid.insertBefore(loadingPara, addStreamCardPlaceholder); } 
+                else { streamGrid.appendChild(loadingPara); }
+                try {
+                    const response = await fetch('/api/stream-configs', { headers: { 'Accept': 'application/json' }});
+                    if (!response.ok) { throw new Error(`Gagal memuat konfigurasi stream: ${response.status}`); }
+                    const existingStreams = await response.json();
+                    loadingPara.remove(); 
+                    if (existingStreams && existingStreams.length > 0) {
+                        existingStreams.forEach(streamData => {
+                             renderStreamCard(streamData); 
+                        });
+                    } else { console.log("Tidak ada konfigurasi stream yang sudah ada."); }
+                } catch (error) {
+                    console.error("Error memuat konfigurasi stream awal:", error);
+                    loadingPara.textContent = "Gagal memuat data stream. Silakan coba refresh halaman.";
+                    loadingPara.classList.add("text-red-500");
+                }
+            }
+            loadInitialStreamConfigs();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrasi - Aplikasi Streaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">Buat Akun Baru</h2>
+        <form id="registerForm">
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-600 mb-1">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="mb-6">
+                <label for="confirmPassword" class="block text-sm font-medium text-gray-600 mb-1">Konfirmasi Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div id="messageDiv" class="mb-4 text-sm"></div>
+            <div>
+                <button type="submit"
+                        class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline">
+                    Daftar
+                </button>
+            </div>
+        </form>
+        <p class="text-xs text-gray-500 mt-4 text-center">
+            Sudah punya akun? <a href="/login" class="text-indigo-600 hover:underline">Login di sini</a>
+        </p>
+    </div>
+
+    <script>
+        const registerForm = document.getElementById('registerForm');
+        const messageDiv = document.getElementById('messageDiv');
+
+        registerForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            messageDiv.textContent = '';
+            messageDiv.className = 'mb-4 text-sm'; // Reset class
+
+            const username = event.target.username.value;
+            const password = event.target.password.value;
+            const confirmPassword = event.target.confirmPassword.value;
+
+            if (password !== confirmPassword) {
+                messageDiv.textContent = 'Password dan konfirmasi password tidak cocok.';
+                messageDiv.classList.add('text-red-500');
+                return;
+            }
+
+            // Anda bisa menambahkan validasi panjang password di sini jika perlu
+
+            try {
+                const response = await fetch('/register', { // Endpoint API backend Anda
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }), // Hanya kirim password sekali
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = result.message + ' Anda akan diarahkan ke halaman login.';
+                    messageDiv.classList.add('text-green-500');
+                    // Redirect ke halaman login setelah beberapa detik
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 3000);
+                } else {
+                    messageDiv.textContent = result.message || 'Registrasi gagal.';
+                    messageDiv.classList.add('text-red-500');
+                }
+            } catch (error) {
+                console.error('Error saat registrasi:', error);
+                messageDiv.textContent = 'Terjadi masalah saat mencoba registrasi. Silakan coba lagi.';
+                messageDiv.classList.add('text-red-500');
+            }
+        });
+    </script>
+</body>
+</html>

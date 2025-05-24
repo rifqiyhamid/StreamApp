@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Aplikasi Streaming</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-sm">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">Login Aplikasi Streaming</h2>
+        <form id="loginForm">
+            <div class="mb-4">
+                <label for="username" class="block text-sm font-medium text-gray-600 mb-1">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="mb-6">
+                <label for="password" class="block text-sm font-medium text-gray-600 mb-1">Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div id="errorMessage" class="mb-4 text-red-500 text-sm"></div>
+            <div>
+                <button type="submit"
+                        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:shadow-outline">
+                    Login
+                </button>
+            </div>
+        </form>
+        <p class="text-xs text-gray-500 mt-4 text-center">
+            Belum punya akun? <a href="/register" class="text-indigo-600 hover:underline">Daftar di sini</a>
+        </p>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const errorMessageDiv = document.getElementById('errorMessage');
+
+        loginForm.addEventListener('submit', async function(event) {
+            event.preventDefault(); // Mencegah form submit cara biasa
+            errorMessageDiv.textContent = ''; // Bersihkan pesan error sebelumnya
+
+            const username = event.target.username.value;
+            const password = event.target.password.value;
+
+            try {
+                const response = await fetch('/login', { // Endpoint API backend Anda
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Login berhasil, arahkan ke halaman dashboard atau halaman utama aplikasi
+                    window.location.href = '/dashboard'; // Ganti dengan halaman tujuan Anda
+                } else {
+                    // Tampilkan pesan error dari server
+                    errorMessageDiv.textContent = result.message || 'Login gagal. Periksa kembali username dan password Anda.';
+                }
+            } catch (error) {
+                console.error('Error saat login:', error);
+                errorMessageDiv.textContent = 'Terjadi masalah saat mencoba login. Silakan coba lagi.';
+            }
+        });
+    </script>
+</body>
+</html>
